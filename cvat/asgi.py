@@ -39,3 +39,27 @@ if debug.is_debugging_enabled():
             return await super().handle(*args, **kwargs)
 
     application = DebuggerApp()
+
+
+class CVATASGI:
+    """
+    Entry point that sends websocket connections to the annotation
+    statistics endpoint and everything else to the Django ASGI handler.
+    """
+
+    def __init__(self, http_app):
+        self.http_app = http_app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "websocket":
+            # Imported lazily: this module is loaded by uvicorn before Django
+            # finishes setting up, so importing the database-backed handler
+            # eagerly fails with AppRegistryNotReady.
+            from cvat.apps.test.asgi import handle_websocket
+
+            await handle_websocket(scope, receive, send)
+        else:
+            await self.http_app(scope, receive, send)
+
+
+application = CVATASGI(application)

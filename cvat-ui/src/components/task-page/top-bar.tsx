@@ -6,7 +6,8 @@
 import React from 'react';
 import { useHistory } from 'react-router';
 import { Row, Col } from 'antd/lib/grid';
-import { LeftOutlined, MoreOutlined } from '@ant-design/icons';
+import Space from 'antd/lib/space';
+import { BarChartOutlined, LeftOutlined, MoreOutlined } from '@ant-design/icons';
 import Button from 'antd/lib/button';
 import Text from 'antd/lib/typography/Text';
 import TaskActionsComponent from 'components/tasks-page/actions-menu';
@@ -48,16 +49,27 @@ export default function DetailsComponent(props: DetailsComponentProps): JSX.Elem
                 )}
             </Col>
             <Col>
-                <TaskActionsComponent
-                    taskInstance={taskInstance}
-                    onUpdateTask={onUpdateTask}
-                    triggerElement={(
-                        <Button size='middle' className='cvat-task-page-actions-button cvat-actions-menu-button'>
-                            <Text className='cvat-text-color'>Actions</Text>
-                            <MoreOutlined className='cvat-menu-icon' />
-                        </Button>
-                    )}
-                />
+                <Space size='large'>
+                    <Button
+                        className='cvat-open-annotation-statistics-button'
+                        onClick={() => history.push(`/tasks/${taskInstance.id}/annotation-stats`)}
+                        type='link'
+                        size='large'
+                    >
+                        <BarChartOutlined />
+                        Annotation statistics
+                    </Button>
+                    <TaskActionsComponent
+                        taskInstance={taskInstance}
+                        onUpdateTask={onUpdateTask}
+                        triggerElement={(
+                            <Button size='middle' className='cvat-task-page-actions-button cvat-actions-menu-button'>
+                                <Text className='cvat-text-color'>Actions</Text>
+                                <MoreOutlined className='cvat-menu-icon' />
+                            </Button>
+                        )}
+                    />
+                </Space>
             </Col>
         </Row>
     );
