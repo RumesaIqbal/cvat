@@ -1,0 +1,130 @@
+// Copyright (C) CVAT.ai Corporation
+//
+// SPDX-License-Identifier: MIT
+
+import './styles.scss';
+
+import React, { useEffect, useState } from 'react';
+import notification from 'antd/lib/notification';
+import { Row, Col } from 'antd/lib/grid';
+import List from 'antd/lib/list';
+import Statistic from 'antd/lib/statistic';
+import Result from 'antd/lib/result';
+import Alert from 'antd/lib/alert';
+import { useParams } from 'react-router';
+
+import { getCore } from 'cvat-core-wrapper';
+import GoBackButton from 'components/common/go-back-button';
+import CVATLoadingSpinner from 'components/common/loading-spinner';
+import { AnnotationStats } from '.';
+
+const core = getCore();
+
+function AnnotationStatsPage(): JSX.Element {
+    const { id } = useParams<{ id: string }>();
+    const taskId = Number(id);
+    const [stats, setStats] = useState<AnnotationStats | null>(null);
+    const [fetching, setFetching] = useState(true);
+    const [failed, setFailed] = useState(false);
+
+    useEffect(() => {
+        let mounted = true;
+
+        setFetching(true);
+        setFailed(false);
+
+        core.server.request(`/api/tasks/${taskId}/annotation-stats`, {
+            method: 'GET',
+            params: { group_by: 'label' },
+        })
+            .then((response: { data: AnnotationStats }) => {
+                if (mounted) {
+                    setStats(response.data);
+                }
+            })
+            .catch((error: unknown) => {
+                if (mounted) {
+                    setFailed(true);
+                    notification.error({
+                        message: 'Could not read annotation statistics for the task',
+                        description: error instanceof Error ? error.message : '',
+                    });
+                }
+            })
+            .finally(() => {
+                if (mounted) {
+                    setFetching(false);
+                }
+            });
+
+        return () => {
+            mounted = false;
+        };
+    }, [taskId]);
+
+    return (
+        <div className='cvat-annotation-stats-page'>
+            <div className='cvat-annotation-stats-wrapper'>
+                <Row justify='center'>
+                    <Col span={22} xl={18} xxl={14} className='cvat-annotation-stats-top-bar'>
+                        <GoBackButton />
+                    </Col>
+                </Row>
+                <Row justify='center' className='cvat-annotation-stats-inner-wrapper'>
+                    <Col span={22} xl={18} xxl={14} className='cvat-annotation-stats-inner'>
+                        { fetching && <CVATLoadingSpinner /> }
+                        { !fetching && failed && (
+                            <Result
+                                status='error'
+                                title='Could not load annotation statistics'
+                                subTitle='Check that the task exists and that you have access to it.'
+                            />
+                        ) }
+                        { !fetching && !failed && stats && (
+                            <>
+                                <Row justify='start' className='cvat-annotation-stats-header'>
+                                    <Col>
+                                        <h1>Annotation statistics</h1>
+                                    </Col>
+                                </Row>
+                                { stats.total === 0 && (
+                                    <Alert
+                                        type='info'
+                                        showIcon
+                                        message='This task does not have any annotations yet.'
+                                    />
+                                ) }
+                                <Row justify='start' className='cvat-annotation-stats-total'>
+                                    <Col>
+                                        <Statistic title='Total annotations' value={stats.total} />
+                                    </Col>
+                                </Row>
+                                <Row justify='start' className='cvat-annotation-stats-counts-header'>
+                                    <Col>
+                                        <h2>Counts per label</h2>
+                                    </Col>
+                                </Row>
+                                <Row justify='start'>
+                                    <Col span={24} className='cvat-annotation-stats-counts'>
+                                        <List
+                                            bordered
+                                            dataSource={stats.counts}
+                                            renderItem={(item) => (
+                                                <List.Item>
+                                                    <span>{item.key}</span>
+                                                    <span>{item.count}</span>
+                                                </List.Item>
+                                            )}
+                                        />
+                                    </Col>
+                                </Row>
+                            </>
+                        ) }
+                    </Col>
+                </Row>
+            </div>
+        </div>
+    );
+}
+
+export default React.memo(AnnotationStatsPage);
