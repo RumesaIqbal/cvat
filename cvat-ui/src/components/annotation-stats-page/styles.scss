@@ -45,7 +45,7 @@
 }
 
 .cvat-annotation-stats-chart {
-    height: 45vh;
+    min-height: 320px;
     width: 100%;
     margin-bottom: $grid-unit-size * 3;
 }

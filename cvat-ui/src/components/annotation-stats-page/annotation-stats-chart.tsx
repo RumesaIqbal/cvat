@@ -55,8 +55,13 @@ function AnnotationStatsChart({ counts }: Props): JSX.Element {
         },
     };
 
+    // Give every label its own readable row instead of cramming all
+    // categories into a fixed-height container (which makes the axis labels
+    // overlap). The page container scrolls for long label lists.
+    const chartHeight = Math.max(320, counts.length * 24);
+
     return (
-        <div className='cvat-annotation-stats-chart'>
+        <div className='cvat-annotation-stats-chart' style={{ height: `${chartHeight}px` }}>
             <Bar data={data} options={options} />
         </div>
     );
