@@ -4,7 +4,7 @@
 
 import './styles.scss';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import notification from 'antd/lib/notification';
 import { Row, Col } from 'antd/lib/grid';
 import List from 'antd/lib/list';
@@ -65,6 +65,59 @@ function AnnotationStatsPage(): JSX.Element {
             mounted = false;
         };
     }, [taskId, groupBy]);
+
+    const wsUrl = useMemo(() => {
+        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        return `${protocol}://${window.location.host}/api/tasks/${taskId}/annotation-stats/ws?group_by=${groupBy}`;
+    }, [taskId, groupBy]);
+
+    useEffect(() => {
+        let closed = false;
+        let socket: WebSocket | null = null;
+        let retries = 0;
+        let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+        function open(): void {
+            if (closed) return;
+
+            socket = new WebSocket(wsUrl);
+            socket.onopen = () => {
+                retries = 0;
+            };
+            socket.onmessage = (event: MessageEvent) => {
+                try {
+                    const data = JSON.parse(event.data as string) as AnnotationStats;
+                    if (data && Array.isArray(data.counts)) {
+                        setStats(data);
+                    }
+                } catch (_error) {
+                    // Ignore malformed frames; the next push is one second away.
+                }
+            };
+            socket.onerror = () => {
+                socket?.close();
+            };
+            socket.onclose = (event: CloseEvent) => {
+                // Do not retry when the server deliberately refused the
+                // connection (e.g. the session expired or access was denied).
+                if ([4400, 4401, 4403, 4404].includes(event.code)) return;
+
+                const delay = Math.min(1000 * 2 ** retries, 30000);
+                retries += 1;
+                retryTimer = setTimeout(open, delay);
+            };
+        }
+
+        open();
+
+        return () => {
+            closed = true;
+            if (retryTimer) {
+                clearTimeout(retryTimer);
+            }
+            socket?.close();
+        };
+    }, [wsUrl]);
 
     return (
         <div className='cvat-annotation-stats-page'>
