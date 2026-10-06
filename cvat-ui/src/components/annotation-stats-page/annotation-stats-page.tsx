@@ -16,6 +16,7 @@ import { useParams } from 'react-router';
 import { getCore } from 'cvat-core-wrapper';
 import GoBackButton from 'components/common/go-back-button';
 import CVATLoadingSpinner from 'components/common/loading-spinner';
+import AnnotationStatsChart from './annotation-stats-chart';
 import { AnnotationStats } from '.';
 
 const core = getCore();
@@ -116,6 +117,16 @@ function AnnotationStatsPage(): JSX.Element {
                                                 </List.Item>
                                             )}
                                         />
+                                    </Col>
+                                </Row>
+                                <Row justify='start' className='cvat-annotation-stats-chart-header'>
+                                    <Col>
+                                        <h2>Chart</h2>
+                                    </Col>
+                                </Row>
+                                <Row justify='start'>
+                                    <Col span={24}>
+                                        <AnnotationStatsChart counts={stats.counts} />
                                     </Col>
                                 </Row>
                             </>

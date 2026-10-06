@@ -38,3 +38,14 @@
     overflow: auto;
     width: 100%;
 }
+
+.cvat-annotation-stats-chart-header {
+    margin-top: $grid-unit-size * 3;
+    margin-bottom: $grid-unit-size;
+}
+
+.cvat-annotation-stats-chart {
+    height: 45vh;
+    width: 100%;
+    margin-bottom: $grid-unit-size * 3;
+}
