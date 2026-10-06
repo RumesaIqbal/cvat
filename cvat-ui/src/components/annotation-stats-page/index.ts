@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: MIT
 
+export type AnnotationGroupBy = 'label' | 'source';
+
 export type AnnotationCount = {
     key: string;
     count: number;
@@ -9,7 +11,7 @@ export type AnnotationCount = {
 
 export type AnnotationStats = {
     task: number;
-    group_by: string;
+    group_by: AnnotationGroupBy;
     total: number;
     counts: AnnotationCount[];
 };

@@ -12,14 +12,17 @@ from cvat.apps.engine.models import (
     LabeledImage,
     LabeledShape,
     LabeledTrack,
+    SourceType,
     Task,
 )
 
 # Grouping keys accepted by the endpoint, mapped to the annotation fields they
-# are aggregated by. The extra grouping key requested for the follow-up
-# ("source") will be added here together with its test.
+# are aggregated by. "source" is the second grouping: it shows where each
+# annotation came from, e.g. how much of a task was drawn by a person
+# (manual) versus produced by a model (auto) or imported from a file.
 GROUP_FIELDS = {
     "label": "label_id",
+    "source": "source",
 }
 
 # Only regular annotation jobs hold annotations that should be counted.
@@ -71,5 +74,12 @@ def get_annotation_counts(task: Task, group_by: str = "label") -> Counter:
         counts = Counter(
             {names.get(label_id, f"label {label_id}"): count for label_id, count in counts.items()}
         )
+    elif group_by == "source":
+        normalized: Counter = Counter()
+        for source, count in counts.items():
+            # Rows written by older clients can have a NULL source. Treat them
+            # as the column default (manual) so the per-source sums add up.
+            normalized[source or SourceType.MANUAL.value] += count
+        counts = normalized
 
     return counts

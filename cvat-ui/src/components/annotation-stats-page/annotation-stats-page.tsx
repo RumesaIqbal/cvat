@@ -11,13 +11,14 @@ import List from 'antd/lib/list';
 import Statistic from 'antd/lib/statistic';
 import Result from 'antd/lib/result';
 import Alert from 'antd/lib/alert';
+import Select from 'antd/lib/select';
 import { useParams } from 'react-router';
 
 import { getCore } from 'cvat-core-wrapper';
 import GoBackButton from 'components/common/go-back-button';
 import CVATLoadingSpinner from 'components/common/loading-spinner';
 import AnnotationStatsChart from './annotation-stats-chart';
-import { AnnotationStats } from '.';
+import { AnnotationGroupBy, AnnotationStats } from '.';
 
 const core = getCore();
 
@@ -27,16 +28,18 @@ function AnnotationStatsPage(): JSX.Element {
     const [stats, setStats] = useState<AnnotationStats | null>(null);
     const [fetching, setFetching] = useState(true);
     const [failed, setFailed] = useState(false);
+    const [groupBy, setGroupBy] = useState<AnnotationGroupBy>('label');
 
     useEffect(() => {
         let mounted = true;
 
         setFetching(true);
         setFailed(false);
+        setStats(null);
 
         core.server.request(`/api/tasks/${taskId}/annotation-stats`, {
             method: 'GET',
-            params: { group_by: 'label' },
+            params: { group_by: groupBy },
         })
             .then((response: { data: AnnotationStats }) => {
                 if (mounted) {
@@ -61,7 +64,7 @@ function AnnotationStatsPage(): JSX.Element {
         return () => {
             mounted = false;
         };
-    }, [taskId]);
+    }, [taskId, groupBy]);
 
     return (
         <div className='cvat-annotation-stats-page'>
@@ -83,9 +86,19 @@ function AnnotationStatsPage(): JSX.Element {
                         ) }
                         { !fetching && !failed && stats && (
                             <>
-                                <Row justify='start' className='cvat-annotation-stats-header'>
+                                <Row justify='space-between' className='cvat-annotation-stats-header'>
                                     <Col>
                                         <h1>Annotation statistics</h1>
+                                    </Col>
+                                    <Col>
+                                        <Select
+                                            className='cvat-annotation-stats-group-selector'
+                                            value={groupBy}
+                                            onChange={(value: AnnotationGroupBy) => setGroupBy(value)}
+                                        >
+                                            <Select.Option value='label'>by label</Select.Option>
+                                            <Select.Option value='source'>by source</Select.Option>
+                                        </Select>
                                     </Col>
                                 </Row>
                                 { stats.total === 0 && (
@@ -102,7 +115,7 @@ function AnnotationStatsPage(): JSX.Element {
                                 </Row>
                                 <Row justify='start' className='cvat-annotation-stats-counts-header'>
                                     <Col>
-                                        <h2>Counts per label</h2>
+                                        <h2>{groupBy === 'label' ? 'Counts per label' : 'Counts per source'}</h2>
                                     </Col>
                                 </Row>
                                 <Row justify='start'>
