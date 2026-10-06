@@ -34,3 +34,12 @@ query is written would not be worth reporting.
 
 **How it will be judged.** Reported as median **and** spread (`max − min`), with all five
 raw runs visible. One number on its own is not a measurement (§6).
+
+## Result (added after measuring)
+
+Target as written above was **met**. Raw runs, exact conditions and the reasons behind
+them are in `docs/perf/annotation-stats.md` (commit `a094aa7b2`):
+
+- Median of 5 runs: **444 ms** (target ≤ 500 ms).
+- No single run above 1,000 ms: **max 606 ms**.
+- Spread (max − min): **177 ms**.

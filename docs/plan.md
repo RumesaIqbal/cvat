@@ -89,7 +89,38 @@ a known-flaky network. It also drags in an ASGI routing layer over an existing `
 be editing anyway. The hand-rolled version is ~80 lines, has no new supply chain, and keeps the
 change contained in one app.
 
+**Taken: group and count by `label_id` in SQL, resolve display names afterwards.**
+The first version grouped by `label__name` in one SQL statement and PostgreSQL, given stale
+row estimates right after the bulk import, scanned all 41,866 shapes once per label — 80 scans,
+~3.3M join-filter rejections, ~3.0 s in the database alone, 2.5–3.5 s end to end.
+
+**Rejected: the single-statement `label__name` join.**
+
+**What rejecting it cost:** the first measured version, a re-run of the whole measurement, and a
+small second query. The replacement is a group by `label_id` (a primary key, so a single scan and
+a small sort, ~0.23 s in the database) plus one `values_list` lookup to turn ids into names.
+
+**Why I still rejected it:** the query had to stay in the database to clear MO-1, and the join
+made the planner pick a plan that read the big table 80 times.
+
 ## Plan changes as they happen
 
 Any step that lands differently from the table above gets a note here saying why, rather than
 being quietly rewritten at the end.
+
+- **Step 3 (page).** The plan said "nothing is added to the task actions menu". That still holds —
+  but the task page was given an **"Annotation statistics" button in the top bar** next to the
+  Actions menu (commit `3c2139d7a`), so a reviewer reaches the page with one click instead of pasting
+  a URL. It touches `task-page/top-bar.tsx` only, not the shared menu component.
+- **Step 5/6 (endpoint).** The counting query landed as *group by `label_id`, resolve names
+  afterwards* rather than group-by-name-in-SQL — see the second decision-record entry above
+  (`d45548c8d`). `group_by=source` was then almost free, same three queries with a different key
+  (`dca7f7673`).
+- **Step 7 (WebSocket).** Two runtime details surfaced while making the endpoint work under
+  `runserver`-style uvicorn: `cvat/asgi.py` imports the handler lazily (uvicorn loads `cvat.asgi`
+  before Django's app registry is ready, so an eager model import crashed the workers on boot), and
+  refused connections are sent as *accept-then-close* so uvicorn delivers the close code instead of
+  downgrading the handshake to an HTTP 403. Both are in commit `4a36bc145`.
+- **Step 8 (docs).** The measurement's raw output lives in `docs/perf/annotation-stats.md`
+  (`a094aa7b2`), and the MO-1 result block was appended to `docs/objectives.md` after measuring
+  rather than folding it back into the pre-measurement target.
